@@ -1,0 +1,269 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@500;700&family=Press+Start+2P&display=swap');
+
+:root {
+  /* Default/Zen Theme */
+  --bg-color: #f8fafc;
+  --text-color: #334155;
+  --board-bg: #ffffff;
+  --board-border: #e2e8f0;
+  --cell-bg: #f1f5f9;
+  --cell-border: #cbd5e1;
+  --cell-hover: #e2e8f0;
+  --primary-color: #0ea5e9;
+  --secondary-color: #10b981;
+  --accent-color: #6366f1;
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --font-family: 'Inter', sans-serif;
+  --radius: 12px;
+  --board-radius: 16px;
+  --board-padding: 16px;
+  --app-bg-image: none;
+  --glass-blur: 0px;
+  --x-glow: none;
+  --o-glow: none;
+}
+
+/* Neon Cyberpunk Theme */
+.theme-neon {
+  --bg-color: #0f172a;
+  --text-color: #f8fafc;
+  --board-bg: #1e293b;
+  --board-border: #38bdf8;
+  --cell-bg: #0f172a;
+  --cell-border: #38bdf8;
+  --cell-hover: #1e293b;
+  --primary-color: #f472b6; /* Pink */
+  --secondary-color: #2dd4bf; /* Cyan */
+  --accent-color: #c084fc;
+  --shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+  --font-family: 'Orbitron', sans-serif;
+  --radius: 4px;
+  --board-radius: 8px;
+  --x-glow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color);
+  --o-glow: 0 0 10px var(--secondary-color), 0 0 20px var(--secondary-color);
+}
+
+/* Glassmorphism Theme */
+.theme-glass {
+  --bg-color: #c4b5fd;
+  --app-bg-image: linear-gradient(135deg, #c4b5fd 0%, #fbcfe8 50%, #93c5fd 100%);
+  --text-color: #1e1b4b;
+  --board-bg: rgba(255, 255, 255, 0.3);
+  --board-border: rgba(255, 255, 255, 0.4);
+  --cell-bg: rgba(255, 255, 255, 0.2);
+  --cell-border: rgba(255, 255, 255, 0.3);
+  --cell-hover: rgba(255, 255, 255, 0.4);
+  --primary-color: #7c3aed;
+  --secondary-color: #db2777;
+  --accent-color: #2563eb;
+  --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  --glass-blur: 10px;
+  --font-family: 'Inter', sans-serif;
+  --radius: 16px;
+  --board-radius: 24px;
+}
+
+/* Retro Arcade Theme */
+.theme-retro {
+  --bg-color: #000000;
+  --text-color: #39ff14;
+  --board-bg: #111111;
+  --board-border: #39ff14;
+  --cell-bg: #000000;
+  --cell-border: #39ff14;
+  --cell-hover: #222222;
+  --primary-color: #ff0055;
+  --secondary-color: #00f0ff;
+  --accent-color: #ffaa00;
+  --shadow: 4px 4px 0px var(--board-border);
+  --font-family: 'Press Start 2P', cursive;
+  --radius: 0px;
+  --board-radius: 0px;
+}
+
+/* Cosmic Space Theme */
+.theme-cosmic {
+  --bg-color: #030014;
+  --app-bg-image: radial-gradient(circle at center, #1a0b2e 0%, #030014 100%);
+  --text-color: #e2e8f0;
+  --board-bg: rgba(15, 23, 42, 0.6);
+  --board-border: #6366f1;
+  --cell-bg: rgba(30, 41, 59, 0.4);
+  --cell-border: rgba(99, 102, 241, 0.3);
+  --cell-hover: rgba(49, 46, 129, 0.6);
+  --primary-color: #fbbf24; /* Sun-like */
+  --secondary-color: #94a3b8; /* Moon-like */
+  --accent-color: #a855f7;
+  --shadow: 0 0 30px rgba(99, 102, 241, 0.2);
+  --glass-blur: 4px;
+  --font-family: 'Orbitron', sans-serif;
+  --radius: 50%;
+  --board-radius: 20px;
+  --x-glow: 0 0 15px var(--primary-color);
+  --o-glow: 0 0 15px var(--secondary-color);
+}
+
+/* Global Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  background-image: var(--app-bg-image);
+  color: var(--text-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  transition: all 0.4s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  min-height: 100dvh;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+/* Layout Utilities */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 1200px;
+  padding: 20px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding-bottom: 2rem;
+}
+
+.theme-switcher-container {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* Tablet & Desktop Responsive Layout */
+@media (min-width: 768px) {
+  .app-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 40px;
+    gap: 40px;
+  }
+
+  .main-content {
+    justify-content: center;
+  }
+
+  .sidebar {
+    width: auto;
+    min-width: 300px;
+    padding-bottom: 0;
+  }
+
+  .theme-switcher-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 0;
+  }
+
+  /* Make the first child span 2 columns to center it nicely if there's 5 items */
+  .theme-switcher-container > :nth-child(1) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 0.5rem);
+  }
+
+  .header {
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .title {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+  }
+  
+  .theme-retro .title {
+    font-size: 2.2rem;
+  }
+
+  .theme-switcher-container {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-switcher-container > :nth-child(1) {
+    grid-column: auto;
+    width: 100%;
+  }
+
+  .sidebar {
+    width: 250px;
+    min-width: 250px;
+  }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-shadow: var(--shadow);
+  transition: all 0.3s;
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: var(--board-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--board-border);
+  box-shadow: var(--shadow);
+}
+
+/* Retro specific */
+.theme-retro .title {
+  font-size: 1.5rem;
+  line-height: 2;
+}
