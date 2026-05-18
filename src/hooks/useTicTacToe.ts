@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { audio } from '../utils/audio';
 import { GameMode, Difficulty } from '../components/GameSettings';
+import { GameType } from '../components/Dashboard';
 
 export type Player = 'X' | 'O' | null;
 
@@ -10,46 +11,99 @@ interface Scores {
   draws: number;
 }
 
-export function useTicTacToe() {
-  const [board, setBoard] = useState<Player[]>(Array(9).fill(null));
+interface UseTicTacToeProps {
+  gameType: GameType;
+  gameMode: GameMode;
+  difficulty: Difficulty;
+  scores: Scores;
+  setScores: (scores: Scores) => void;
+}
+
+// Helper to calculate winner on a dynamic board
+function calculateDynamicWinner(squares: Player[], size: number, winLength: number) {
+  // Check horizontal
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col <= size - winLength; col++) {
+      const idx = row * size + col;
+      const player = squares[idx];
+      if (!player) continue;
+      let won = true;
+      let line = [idx];
+      for (let i = 1; i < winLength; i++) {
+        if (squares[idx + i] !== player) { won = false; break; }
+        line.push(idx + i);
+      }
+      if (won) return { winner: player, line };
+    }
+  }
+
+  // Check vertical
+  for (let col = 0; col < size; col++) {
+    for (let row = 0; row <= size - winLength; row++) {
+      const idx = row * size + col;
+      const player = squares[idx];
+      if (!player) continue;
+      let won = true;
+      let line = [idx];
+      for (let i = 1; i < winLength; i++) {
+        if (squares[idx + i * size] !== player) { won = false; break; }
+        line.push(idx + i * size);
+      }
+      if (won) return { winner: player, line };
+    }
+  }
+
+  // Check diagonal (top-left to bottom-right)
+  for (let row = 0; row <= size - winLength; row++) {
+    for (let col = 0; col <= size - winLength; col++) {
+      const idx = row * size + col;
+      const player = squares[idx];
+      if (!player) continue;
+      let won = true;
+      let line = [idx];
+      for (let i = 1; i < winLength; i++) {
+        if (squares[idx + i * (size + 1)] !== player) { won = false; break; }
+        line.push(idx + i * (size + 1));
+      }
+      if (won) return { winner: player, line };
+    }
+  }
+
+  // Check anti-diagonal (top-right to bottom-left)
+  for (let row = 0; row <= size - winLength; row++) {
+    for (let col = winLength - 1; col < size; col++) {
+      const idx = row * size + col;
+      const player = squares[idx];
+      if (!player) continue;
+      let won = true;
+      let line = [idx];
+      for (let i = 1; i < winLength; i++) {
+        if (squares[idx + i * (size - 1)] !== player) { won = false; break; }
+        line.push(idx + i * (size - 1));
+      }
+      if (won) return { winner: player, line };
+    }
+  }
+
+  return null;
+}
+
+export function useTicTacToe({ gameType, gameMode, difficulty, scores, setScores }: UseTicTacToeProps) {
+  const isInfinity = gameType === 'infinity';
+  const boardSize = isInfinity ? 15 : 3;
+  const winLength = isInfinity ? 5 : 3;
+  const totalCells = boardSize * boardSize;
+
+  const [board, setBoard] = useState<Player[]>(Array(totalCells).fill(null));
   const [xIsNext, setXIsNext] = useState<boolean>(true);
-  const [gameMode, setGameMode] = useState<GameMode>('pvp');
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
-  
-  // Local storage for scores
-  const [scores, setScores] = useState<Scores>(() => {
-    const saved = localStorage.getItem('tictactoe-scores');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return { x: 0, o: 0, draws: 0 };
-  });
 
-  const calculateWinner = (squares: Player[]) => {
-    const lines = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8],
-      [0, 3, 6],
-      [1, 4, 7],
-      [2, 5, 8],
-      [0, 4, 8],
-      [2, 4, 6],
-    ];
-    for (let i = 0; i < lines.length; i++) {
-      const [a, b, c] = lines[i];
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-        return { winner: squares[a], line: lines[i] };
-      }
-    }
-    return null;
-  };
+  // Reset board when gameType changes
+  useEffect(() => {
+    setBoard(Array(totalCells).fill(null));
+    setXIsNext(true);
+  }, [gameType, totalCells]);
 
-  const winInfo = calculateWinner(board);
+  const winInfo = calculateDynamicWinner(board, boardSize, winLength);
   const winner = winInfo?.winner;
   const winningLine = winInfo?.line || [];
   const isDraw = !winner && board.every((square) => square !== null);
@@ -58,26 +112,19 @@ export function useTicTacToe() {
   useEffect(() => {
     if (winner) {
       audio.playWin();
-      setScores(prev => {
-        const newScores = { ...prev, [winner.toLowerCase()]: prev[winner.toLowerCase() as keyof Scores] + 1 };
-        localStorage.setItem('tictactoe-scores', JSON.stringify(newScores));
-        return newScores;
-      });
+      setScores({ ...scores, [winner.toLowerCase()]: scores[winner.toLowerCase() as keyof Scores] + 1 });
     } else if (isDraw) {
       audio.playDraw();
-      setScores(prev => {
-        const newScores = { ...prev, draws: prev.draws + 1 };
-        localStorage.setItem('tictactoe-scores', JSON.stringify(newScores));
-        return newScores;
-      });
+      setScores({ ...scores, draws: scores.draws + 1 });
     }
-  }, [winner, isDraw]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [winner, isDraw]); // Intentionally omitting `scores` to prevent loop
 
   const handleClick = useCallback(
     (i: number) => {
       // If cell is filled or game is over, or if it's AI's turn
       if (board[i] || winner || isDraw) return;
-      if (gameMode === 'ai' && !xIsNext) return; // Prevent human from playing during AI turn
+      if (gameMode === 'ai' && !xIsNext) return; 
 
       const newBoard = [...board];
       newBoard[i] = xIsNext ? 'X' : 'O';
@@ -90,9 +137,9 @@ export function useTicTacToe() {
     [board, xIsNext, winner, isDraw, gameMode]
   );
 
-  // Helper for Minimax
+  // --- Classic Minimax AI ---
   const minimax = (squares: Player[], depth: number, isMaximizing: boolean): number => {
-    const result = calculateWinner(squares);
+    const result = calculateDynamicWinner(squares, 3, 3);
     if (result?.winner === 'O') return 10 - depth;
     if (result?.winner === 'X') return depth - 10;
     if (squares.every(s => s !== null)) return 0;
@@ -122,7 +169,7 @@ export function useTicTacToe() {
     }
   };
 
-  const getBestMove = (squares: Player[]): number => {
+  const getBestMoveClassic = (squares: Player[]): number => {
     let bestScore = -Infinity;
     let move = -1;
     for (let i = 0; i < squares.length; i++) {
@@ -139,6 +186,65 @@ export function useTicTacToe() {
     return move;
   };
 
+  // --- Infinity Heuristic AI ---
+  const getHeuristicMoveInfinity = (squares: Player[]): number => {
+    // Simple heuristic: Find immediate wins or immediate blocks.
+    // If none, play near existing pieces randomly.
+    
+    // 1. Can AI win?
+    for (let i = 0; i < totalCells; i++) {
+      if (!squares[i]) {
+        squares[i] = 'O';
+        if (calculateDynamicWinner(squares, boardSize, winLength)) {
+          squares[i] = null;
+          return i;
+        }
+        squares[i] = null;
+      }
+    }
+
+    // 2. Must AI block Player X from winning?
+    for (let i = 0; i < totalCells; i++) {
+      if (!squares[i]) {
+        squares[i] = 'X';
+        if (calculateDynamicWinner(squares, boardSize, winLength)) {
+          squares[i] = null;
+          return i; // Block!
+        }
+        squares[i] = null;
+      }
+    }
+
+    // 3. Just pick a random empty cell that is adjacent to an existing piece
+    let adjacentEmptyCells: number[] = [];
+    for (let r = 0; r < boardSize; r++) {
+      for (let c = 0; c < boardSize; c++) {
+        const i = r * boardSize + c;
+        if (!squares[i]) {
+          // Check neighbors
+          let hasNeighbor = false;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              if (dr === 0 && dc === 0) continue;
+              const nr = r + dr, nc = c + dc;
+              if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize) {
+                if (squares[nr * boardSize + nc]) hasNeighbor = true;
+              }
+            }
+          }
+          if (hasNeighbor) adjacentEmptyCells.push(i);
+        }
+      }
+    }
+
+    if (adjacentEmptyCells.length > 0) {
+      return adjacentEmptyCells[Math.floor(Math.random() * adjacentEmptyCells.length)];
+    }
+
+    // 4. Fallback: completely random
+    return getRandomMove(squares);
+  };
+
   const getRandomMove = (squares: Player[]): number => {
     const available = squares.map((sq, i) => sq === null ? i : null).filter(val => val !== null) as number[];
     if (available.length === 0) return -1;
@@ -151,17 +257,30 @@ export function useTicTacToe() {
       const timer = setTimeout(() => {
         let aiMove = -1;
 
-        if (difficulty === 'easy') {
-          aiMove = getRandomMove(board);
-        } else if (difficulty === 'medium') {
-          // 50% random, 50% best move
-          if (Math.random() > 0.5) {
-            aiMove = getBestMove([...board]);
-          } else {
+        if (isInfinity) {
+          if (difficulty === 'easy') {
             aiMove = getRandomMove(board);
+          } else {
+            // Med/Hard uses heuristic
+            if (difficulty === 'medium' && Math.random() > 0.7) {
+              aiMove = getRandomMove(board);
+            } else {
+              aiMove = getHeuristicMoveInfinity([...board]);
+            }
           }
-        } else if (difficulty === 'hard') {
-          aiMove = getBestMove([...board]);
+        } else {
+          // Classic 3x3 AI
+          if (difficulty === 'easy') {
+            aiMove = getRandomMove(board);
+          } else if (difficulty === 'medium') {
+            if (Math.random() > 0.5) {
+              aiMove = getBestMoveClassic([...board]);
+            } else {
+              aiMove = getRandomMove(board);
+            }
+          } else if (difficulty === 'hard') {
+            aiMove = getBestMoveClassic([...board]);
+          }
         }
 
         if (aiMove !== -1) {
@@ -173,21 +292,16 @@ export function useTicTacToe() {
           setBoard(newBoard);
           setXIsNext(true);
         }
-      }, 500); // Add a small delay for realism
+      }, 500);
 
       return () => clearTimeout(timer);
     }
-  }, [board, xIsNext, gameMode, difficulty, winner, isDraw]);
+  }, [board, xIsNext, gameMode, difficulty, winner, isDraw, isInfinity]);
 
   const resetGame = useCallback(() => {
-    setBoard(Array(9).fill(null));
+    setBoard(Array(totalCells).fill(null));
     setXIsNext(true);
-  }, []);
-  
-  const resetScores = useCallback(() => {
-    setScores({ x: 0, o: 0, draws: 0 });
-    localStorage.removeItem('tictactoe-scores');
-  }, []);
+  }, [totalCells]);
 
   return {
     board,
@@ -195,13 +309,7 @@ export function useTicTacToe() {
     winner,
     winningLine,
     isDraw,
-    scores,
-    gameMode,
-    setGameMode,
-    difficulty,
-    setDifficulty,
     handleClick,
     resetGame,
-    resetScores
   };
 }

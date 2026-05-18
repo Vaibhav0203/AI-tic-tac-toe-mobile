@@ -103,6 +103,100 @@
   --o-glow: 0 0 15px var(--secondary-color);
 }
 
+/* Cyberpunk (Yellow) Theme */
+.theme-cyber {
+  --bg-color: #000000;
+  --text-color: #fcee0a;
+  --board-bg: #111111;
+  --board-border: #fcee0a;
+  --cell-bg: #000000;
+  --cell-border: #fcee0a;
+  --cell-hover: #222200;
+  --primary-color: #00f0ff;
+  --secondary-color: #ff0055;
+  --accent-color: #fcee0a;
+  --shadow: 0 0 10px rgba(252, 238, 10, 0.4);
+  --font-family: 'Orbitron', sans-serif;
+  --radius: 0px;
+  --board-radius: 0px;
+  --x-glow: 0 0 5px var(--primary-color);
+  --o-glow: 0 0 5px var(--secondary-color);
+}
+
+/* Dark Theme */
+.theme-dark {
+  --bg-color: #121212;
+  --text-color: #e0e0e0;
+  --board-bg: #1e1e1e;
+  --board-border: #333333;
+  --cell-bg: #252525;
+  --cell-border: #333333;
+  --cell-hover: #2f2f2f;
+  --primary-color: #bb86fc;
+  --secondary-color: #03dac6;
+  --accent-color: #cf6679;
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5);
+  --font-family: 'Inter', sans-serif;
+  --radius: 8px;
+  --board-radius: 12px;
+}
+
+/* Nature Theme */
+.theme-nature {
+  --bg-color: #f0fdf4;
+  --text-color: #166534;
+  --board-bg: #dcfce7;
+  --board-border: #86efac;
+  --cell-bg: #bbf7d0;
+  --cell-border: #86efac;
+  --cell-hover: #86efac;
+  --primary-color: #047857;
+  --secondary-color: #b45309;
+  --accent-color: #15803d;
+  --shadow: 0 4px 6px -1px rgb(22 101 52 / 0.1);
+  --font-family: 'Inter', sans-serif;
+  --radius: 12px;
+  --board-radius: 16px;
+}
+
+/* Ocean Theme */
+.theme-ocean {
+  --bg-color: #0f172a;
+  --app-bg-image: linear-gradient(to bottom, #0f172a, #082f49, #0284c7);
+  --text-color: #e0f2fe;
+  --board-bg: rgba(14, 165, 233, 0.2);
+  --board-border: #38bdf8;
+  --cell-bg: rgba(2, 132, 199, 0.3);
+  --cell-border: #38bdf8;
+  --cell-hover: rgba(2, 132, 199, 0.6);
+  --primary-color: #38bdf8;
+  --secondary-color: #f0f9ff;
+  --accent-color: #0284c7;
+  --shadow: 0 0 20px rgba(2, 132, 199, 0.4);
+  --font-family: 'Inter', sans-serif;
+  --radius: 16px;
+  --board-radius: 20px;
+}
+
+/* Sunset Theme */
+.theme-sunset {
+  --bg-color: #4c0519;
+  --app-bg-image: linear-gradient(to top, #4c0519, #9f1239, #e11d48, #f97316);
+  --text-color: #fffedd;
+  --board-bg: rgba(251, 146, 60, 0.2);
+  --board-border: #fb923c;
+  --cell-bg: rgba(249, 115, 22, 0.3);
+  --cell-border: #fb923c;
+  --cell-hover: rgba(249, 115, 22, 0.5);
+  --primary-color: #fde047;
+  --secondary-color: #fbcfe8;
+  --accent-color: #fb923c;
+  --shadow: 0 0 15px rgba(249, 115, 22, 0.3);
+  --font-family: 'Inter', sans-serif;
+  --radius: 12px;
+  --board-radius: 16px;
+}
+
 /* Global Reset */
 * {
   box-sizing: border-box;
@@ -241,14 +335,14 @@ body {
 
 .header {
   text-align: center;
-  margin-bottom: 2rem;
-  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   text-shadow: var(--shadow);
   transition: all 0.3s;
 }
@@ -266,4 +360,65 @@ body {
 .theme-retro .title {
   font-size: 1.5rem;
   line-height: 2;
+}
+
+/* Dashboard Specific Styles */
+.select-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  background: var(--cell-bg);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: bold;
+}
+
+.select-btn.active {
+  border-color: var(--primary-color);
+  background: var(--cell-hover);
+  color: var(--primary-color);
+}
+
+.select-btn-sm {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.select-btn-sm.active {
+  border-color: var(--text-color);
+  background: var(--cell-hover);
+}
+
+/* Responsive Ads Layout Classes */
+.desktop-only {
+  display: none;
+}
+.mobile-only {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .desktop-only {
+    display: block;
+  }
+  .mobile-only {
+    display: none;
+  }
 }

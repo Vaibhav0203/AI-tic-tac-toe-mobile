@@ -19,10 +19,10 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
   setDifficulty,
 }) => {
   return (
-    <div className="glass-panel" style={{ padding: '1rem', borderRadius: 'var(--radius)', marginBottom: '1.5rem', width: '100%', maxWidth: '400px' }}>
+    <div className="glass-panel" style={{ padding: '0.5rem', borderRadius: 'var(--radius)', marginBottom: '0.75rem', width: '100%', maxWidth: '400px' }}>
       
       {/* Mode Toggle */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: gameMode === 'ai' ? '0.5rem' : '0' }}>
         <button
           onClick={() => setGameMode('pvp')}
           style={{
@@ -31,7 +31,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.5rem',
-            padding: '0.75rem',
+            padding: '0.5rem',
             border: `2px solid ${gameMode === 'pvp' ? 'var(--primary-color)' : 'transparent'}`,
             borderRadius: 'var(--radius)',
             background: gameMode === 'pvp' ? 'var(--cell-hover)' : 'var(--cell-bg)',
@@ -53,7 +53,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.5rem',
-            padding: '0.75rem',
+            padding: '0.5rem',
             border: `2px solid ${gameMode === 'ai' ? 'var(--secondary-color)' : 'transparent'}`,
             borderRadius: 'var(--radius)',
             background: gameMode === 'ai' ? 'var(--cell-hover)' : 'var(--cell-bg)',
