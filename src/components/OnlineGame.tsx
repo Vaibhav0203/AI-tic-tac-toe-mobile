@@ -1,27 +1,14 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useOnlineGame } from '../hooks/useOnlineGame';
+import { useOnlineGame, getWinningCells } from '../hooks/useOnlineGame';
 import { AuthUser } from '../contexts/AuthContext';
-import { ArrowLeft, Wifi, Loader2, Trophy, Minus } from 'lucide-react';
+import { ArrowLeft, Wifi, Loader2 } from 'lucide-react';
 
 interface OnlineGameProps {
-  gameId: string;
+  gameId:      string;
   currentUser: AuthUser;
-  mySymbol: 'X' | 'O';
-  onBack: () => void;
-}
-
-const WINNING_COMBOS = [
-  [0,1,2],[3,4,5],[6,7,8],
-  [0,3,6],[1,4,7],[2,5,8],
-  [0,4,8],[2,4,6],
-];
-
-function getWinningCells(board: string[]): number[] {
-  for (const [a,b,c] of WINNING_COMBOS) {
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) return [a,b,c];
-  }
-  return [];
+  mySymbol:    'X' | 'O';
+  onBack:      () => void;
 }
 
 export const OnlineGame: React.FC<OnlineGameProps> = ({ gameId, currentUser, mySymbol, onBack }) => {
@@ -38,20 +25,25 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ gameId, currentUser, myS
     );
   }
 
-  const isMyTurn = gameState.currentTurn === mySymbol && gameState.status === 'active';
+  const gt           = gameState.gameType ?? 'classic';
+  const GRID_SIZE    = gt === 'infinity' ? 15 : 3;
+  const isMyTurn     = gameState.currentTurn === mySymbol && gameState.status === 'active';
   const opponentName = mySymbol === 'X' ? gameState.playerO : gameState.playerX;
-  const isFinished = gameState.status === 'finished';
-  const winningCells = isFinished ? getWinningCells(gameState.board) : [];
-  const iWon = isFinished && gameState.winner === currentUser.username;
-  const isDraw = isFinished && gameState.winner === 'draw';
-  const iLost = isFinished && !iWon && !isDraw;
+  const isFinished   = gameState.status === 'finished';
+  const winCells     = isFinished ? getWinningCells(gameState.board, gt) : [];
+  const iWon         = isFinished && gameState.winner === currentUser.username;
+  const isDraw       = isFinished && gameState.winner === 'draw';
+  const iLost        = isFinished && !iWon && !isDraw;
+
+  // Cell sizing: smaller for infinity
+  const cellPx = gt === 'infinity' ? 34 : 0;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      style={{ width: '100%', maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+      style={{ width: '100%', maxWidth: gt === 'infinity' ? '600px' : '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
     >
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
@@ -60,79 +52,79 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ gameId, currentUser, myS
         </button>
         <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', color:'var(--primary-color)', fontWeight:'bold' }}>
           <Wifi size={16} />
-          <span>Online Match</span>
+          <span>Online · {gt === 'infinity' ? 'Infinity (15×15, 5 in a row)' : 'Classic (3×3)'}</span>
         </div>
       </div>
 
       {/* Players Bar */}
       <div className="glass-panel" style={{ padding:'1rem', borderRadius:'var(--radius)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        {/* Player X */}
         <div style={{ textAlign:'center', flex:1 }}>
           <div style={{ fontSize:'1.4rem', fontWeight:900, color:'var(--primary-color)' }}>X</div>
           <div style={{ fontSize:'0.8rem', color:'var(--text-color)', opacity:0.8, fontWeight:'bold', maxWidth:'120px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {gameState.playerX} {mySymbol === 'X' ? '(You)' : ''}
+            {gameState.playerX}{mySymbol === 'X' ? ' (You)' : ''}
           </div>
         </div>
-
-        {/* Turn indicator */}
         <div style={{ textAlign:'center', flex:1 }}>
           {isFinished ? (
             <div style={{ fontSize:'0.85rem', color: iWon ? '#4ade80' : iLost ? '#f87171' : 'var(--text-color)', fontWeight:'bold' }}>
               {isDraw ? 'Draw!' : iWon ? '🏆 You Won!' : '😞 You Lost'}
             </div>
           ) : (
-            <div style={{ fontSize:'0.8rem', color:'var(--text-color)', opacity:0.7 }}>
-              <motion.div
-                animate={isMyTurn ? { scale: [1, 1.15, 1] } : {}}
-                transition={{ repeat: Infinity, duration: 1.2 }}
-                style={{ fontWeight:'bold', color: isMyTurn ? 'var(--primary-color)' : 'var(--secondary-color)' }}
-              >
-                {isMyTurn ? 'Your Turn' : `${opponentName}'s Turn`}
-              </motion.div>
-            </div>
+            <motion.div
+              animate={isMyTurn ? { scale: [1, 1.15, 1] } : {}}
+              transition={{ repeat: Infinity, duration: 1.2 }}
+              style={{ fontSize:'0.82rem', fontWeight:'bold', color: isMyTurn ? 'var(--primary-color)' : 'var(--secondary-color)' }}
+            >
+              {isMyTurn ? 'Your Turn' : `${opponentName}'s Turn`}
+            </motion.div>
           )}
         </div>
-
-        {/* Player O */}
         <div style={{ textAlign:'center', flex:1 }}>
           <div style={{ fontSize:'1.4rem', fontWeight:900, color:'var(--secondary-color)' }}>O</div>
           <div style={{ fontSize:'0.8rem', color:'var(--text-color)', opacity:0.8, fontWeight:'bold', maxWidth:'120px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {gameState.playerO} {mySymbol === 'O' ? '(You)' : ''}
+            {gameState.playerO}{mySymbol === 'O' ? ' (You)' : ''}
           </div>
         </div>
       </div>
 
       {/* Board */}
-      <div className="glass-panel" style={{ padding:'1.25rem', borderRadius:'var(--radius)' }}>
+      <div className="glass-panel" style={{ padding:'1rem', borderRadius:'var(--radius)', overflowX: gt === 'infinity' ? 'auto' : 'visible' }}>
         <div style={{
-          display:'grid', gridTemplateColumns:'repeat(3, 1fr)',
-          gap:'0.5rem', aspectRatio:'1',
+          display: 'grid',
+          gridTemplateColumns: `repeat(${GRID_SIZE}, ${cellPx ? cellPx + 'px' : '1fr'})`,
+          gap: gt === 'infinity' ? '2px' : '0.5rem',
+          width: gt === 'infinity' ? `${GRID_SIZE * (cellPx + 2)}px` : '100%',
+          aspectRatio: gt === 'infinity' ? 'unset' : '1',
+          margin: '0 auto',
         }}>
           {gameState.board.map((cell, i) => {
-            const isWinCell = winningCells.includes(i);
+            const isWinCell = winCells.includes(i);
             return (
               <motion.button
                 key={i}
-                whileHover={!cell && isMyTurn ? { scale: 1.05 } : {}}
-                whileTap={!cell && isMyTurn ? { scale: 0.95 } : {}}
+                whileHover={!cell && isMyTurn ? { scale: 1.08 } : {}}
+                whileTap={!cell && isMyTurn ? { scale: 0.92 } : {}}
                 onClick={() => makeMove(i)}
                 style={{
-                  aspectRatio:'1',
-                  borderRadius:'var(--radius)',
-                  border: `2px solid ${isWinCell ? 'var(--primary-color)' : 'var(--board-border)'}`,
-                  background: isWinCell ? 'rgba(var(--primary-rgb,99,102,241),0.2)' : 'var(--cell-bg)',
+                  width:  cellPx ? `${cellPx}px` : 'auto',
+                  height: cellPx ? `${cellPx}px` : 'auto',
+                  aspectRatio: '1',
+                  borderRadius: gt === 'infinity' ? '4px' : 'var(--radius)',
+                  border: `${gt === 'infinity' ? 1 : 2}px solid ${isWinCell ? 'var(--primary-color)' : 'var(--board-border)'}`,
+                  background: isWinCell ? 'rgba(99,102,241,0.25)' : 'var(--cell-bg)',
                   cursor: !cell && isMyTurn ? 'pointer' : 'default',
-                  fontSize:'clamp(1.5rem, 8vw, 2.5rem)',
-                  fontWeight:900,
+                  fontSize: gt === 'infinity' ? '14px' : 'clamp(1.5rem, 8vw, 2.5rem)',
+                  fontWeight: 900,
                   color: cell === 'X' ? 'var(--primary-color)' : 'var(--secondary-color)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  transition:'all 0.2s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s',
+                  padding: 0,
                 }}
               >
                 <AnimatePresence>
                   {cell && (
                     <motion.span
-                      initial={{ scale: 0, rotate: -20 }}
+                      initial={{ scale: 0, rotate: -15 }}
                       animate={{ scale: 1, rotate: 0 }}
                       exit={{ scale: 0 }}
                     >
@@ -146,7 +138,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ gameId, currentUser, myS
         </div>
       </div>
 
-      {/* Game Over Actions */}
+      {/* Game Over */}
       <AnimatePresence>
         {isFinished && (
           <motion.div
@@ -167,10 +159,8 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ gameId, currentUser, myS
               </div>
             )}
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={onBack}
-              className="play-button"
               style={{ padding:'0.75rem 2rem', borderRadius:'var(--radius)', background:'var(--primary-color)', color:'#fff', fontWeight:'bold', border:'none', cursor:'pointer', fontSize:'1rem' }}
             >
               Back to Dashboard

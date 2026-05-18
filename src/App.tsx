@@ -68,7 +68,7 @@ function AppContent() {
 
   const handleFindMatch = () => {
     setCurrentScreen('online-searching');
-    findMatch();
+    findMatch(gameType);
   };
 
   const handleCancelSearch = () => {
@@ -203,7 +203,7 @@ function AppContent() {
                   <div>
                     <h2 style={{ color: 'var(--text-color)', marginBottom: '0.5rem' }}>Finding Opponent...</h2>
                     <p style={{ color: 'var(--text-color)', opacity: 0.6, fontSize: '0.9rem' }}>
-                      Looking for an online player to match you
+                      Searching for a {gameType === 'infinity' ? 'Infinity (15×15)' : 'Classic (3×3)'} match
                     </p>
                   </div>
                   {/* Animated dots */}
