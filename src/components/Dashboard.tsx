@@ -1,23 +1,29 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Users, Bot, BrainCircuit, Zap, Sparkles, Grid3X3, Grid } from 'lucide-react';
+import { Users, Bot, BrainCircuit, Zap, Sparkles, Grid3X3, Grid, Wifi, WifiOff, Trophy } from 'lucide-react';
 import { GameMode, Difficulty } from './GameSettings';
 import { ThemeName } from './ThemeSwitcher';
 
 export type GameType = 'classic' | 'infinity';
+export type PvpMode = 'offline' | 'online';
 
 interface DashboardProps {
   gameType: GameType;
   setGameType: (type: GameType) => void;
   gameMode: GameMode;
   setGameMode: (mode: GameMode) => void;
+  pvpMode: PvpMode;
+  setPvpMode: (mode: PvpMode) => void;
   difficulty: Difficulty;
   setDifficulty: (diff: Difficulty) => void;
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
   onPlay: () => void;
+  onFindMatch: () => void;
+  onLeaderboard: () => void;
   classicScores: { x: number; o: number; draws: number };
   infinityScores: { x: number; o: number; draws: number };
+  username: string;
 }
 
 const THEMES: { id: ThemeName; label: string; color: string }[] = [
@@ -36,22 +42,44 @@ const THEMES: { id: ThemeName; label: string; color: string }[] = [
 export const Dashboard: React.FC<DashboardProps> = ({
   gameType, setGameType,
   gameMode, setGameMode,
+  pvpMode, setPvpMode,
   difficulty, setDifficulty,
   theme, setTheme,
-  onPlay,
-  classicScores,
-  infinityScores
+  onPlay, onFindMatch, onLeaderboard,
+  classicScores, infinityScores,
+  username,
 }) => {
   const scores = gameType === 'classic' ? classicScores : infinityScores;
+  const isOnlinePvp = gameMode === 'pvp' && pvpMode === 'online';
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="dashboard-container"
       style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '500px', margin: '0 auto' }}
     >
+      {/* Welcome + Leaderboard */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ color: 'var(--text-color)', fontSize: '0.95rem' }}>
+          👋 <strong>{username}</strong>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onLeaderboard}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            padding: '0.5rem 0.9rem', borderRadius: 'var(--radius)',
+            background: 'var(--cell-bg)', border: '1px solid var(--board-border)',
+            color: '#FFD700', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem',
+          }}
+        >
+          <Trophy size={15} /> Rankings
+        </motion.button>
+      </div>
+
       {/* Scoreboard Preview */}
       <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: 'var(--radius)', textAlign: 'center' }}>
         <h2 style={{ marginBottom: '1rem', color: 'var(--text-color)', fontSize: '1.2rem' }}>
@@ -73,72 +101,74 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Game Type Selection */}
+      {/* Game Type */}
       <div className="glass-panel" style={{ padding: '1rem', borderRadius: 'var(--radius)' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', color: 'var(--text-color)' }}>Game Type</h3>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={() => setGameType('classic')}
-            className={`select-btn ${gameType === 'classic' ? 'active' : ''}`}
-          >
+          <button onClick={() => setGameType('classic')} className={`select-btn ${gameType === 'classic' ? 'active' : ''}`}>
             <Grid3X3 size={20} /> Classic (3x3)
           </button>
-          <button
-            onClick={() => setGameType('infinity')}
-            className={`select-btn ${gameType === 'infinity' ? 'active' : ''}`}
-          >
+          <button onClick={() => setGameType('infinity')} className={`select-btn ${gameType === 'infinity' ? 'active' : ''}`}>
             <Grid size={20} /> Infinity (15x15)
           </button>
         </div>
       </div>
 
-      {/* Opponent Selection */}
+      {/* Opponent */}
       <div className="glass-panel" style={{ padding: '1rem', borderRadius: 'var(--radius)' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', color: 'var(--text-color)' }}>Opponent</h3>
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: gameMode === 'ai' ? '0.75rem' : '0' }}>
-          <button
-            onClick={() => setGameMode('pvp')}
-            className={`select-btn ${gameMode === 'pvp' ? 'active' : ''}`}
-          >
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: (gameMode === 'ai' || gameMode === 'pvp') ? '0.75rem' : '0' }}>
+          <button onClick={() => setGameMode('pvp')} className={`select-btn ${gameMode === 'pvp' ? 'active' : ''}`}>
             <Users size={20} /> PvP
           </button>
-          <button
-            onClick={() => setGameMode('ai')}
-            className={`select-btn ${gameMode === 'ai' ? 'active' : ''}`}
-          >
+          <button onClick={() => { setGameMode('ai'); }} className={`select-btn ${gameMode === 'ai' ? 'active' : ''}`}>
             <Bot size={20} /> vs AI
           </button>
         </div>
 
+        {/* Online / Offline toggle (only for PvP) */}
+        {gameMode === 'pvp' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            style={{ display: 'flex', gap: '0.5rem', overflow: 'hidden', marginBottom: '0' }}
+          >
+            <button
+              onClick={() => setPvpMode('offline')}
+              className={`select-btn-sm ${pvpMode === 'offline' ? 'active' : ''}`}
+            >
+              <WifiOff size={15} /> Offline
+            </button>
+            <button
+              onClick={() => setPvpMode('online')}
+              className={`select-btn-sm ${pvpMode === 'online' ? 'active' : ''}`}
+            >
+              <Wifi size={15} /> Online
+            </button>
+          </motion.div>
+        )}
+
+        {/* AI Difficulty */}
         {gameMode === 'ai' && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             style={{ display: 'flex', gap: '0.5rem', overflow: 'hidden' }}
           >
-            <button
-              onClick={() => setDifficulty('easy')}
-              className={`select-btn-sm ${difficulty === 'easy' ? 'active' : ''}`}
-            >
+            <button onClick={() => setDifficulty('easy')} className={`select-btn-sm ${difficulty === 'easy' ? 'active' : ''}`}>
               <Sparkles size={16} /> Easy
             </button>
-            <button
-              onClick={() => setDifficulty('medium')}
-              className={`select-btn-sm ${difficulty === 'medium' ? 'active' : ''}`}
-            >
+            <button onClick={() => setDifficulty('medium')} className={`select-btn-sm ${difficulty === 'medium' ? 'active' : ''}`}>
               <Zap size={16} /> Medium
             </button>
-            <button
-              onClick={() => setDifficulty('hard')}
-              className={`select-btn-sm ${difficulty === 'hard' ? 'active' : ''}`}
-            >
+            <button onClick={() => setDifficulty('hard')} className={`select-btn-sm ${difficulty === 'hard' ? 'active' : ''}`}>
               <BrainCircuit size={16} /> Hard
             </button>
           </motion.div>
         )}
       </div>
 
-      {/* Theme Selection */}
+      {/* Theme */}
       <div className="glass-panel" style={{ padding: '1rem', borderRadius: 'var(--radius)' }}>
         <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', color: 'var(--text-color)' }}>Theme</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -147,48 +177,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
               key={t.id}
               onClick={() => setTheme(t.id)}
               style={{
-                padding: '0.5rem',
-                borderRadius: 'var(--radius)',
+                padding: '0.5rem', borderRadius: 'var(--radius)',
                 border: `2px solid ${theme === t.id ? t.color : 'transparent'}`,
-                background: 'var(--cell-bg)',
-                color: 'var(--text-color)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.85rem',
-                fontWeight: theme === t.id ? 'bold' : 'normal',
-                transition: 'all 0.2s',
+                background: 'var(--cell-bg)', color: 'var(--text-color)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
+                gap: '0.5rem', fontSize: '0.85rem',
+                fontWeight: theme === t.id ? 'bold' : 'normal', transition: 'all 0.2s',
               }}
             >
-              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: t.color }}></div>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: t.color }} />
               {t.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Play Button */}
+      {/* Play / Find Match Button */}
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        onClick={onPlay}
+        onClick={isOnlinePvp ? onFindMatch : onPlay}
         className="play-button"
         style={{
-          padding: '1rem',
-          borderRadius: 'var(--radius)',
-          background: 'var(--primary-color)',
-          color: '#fff',
-          fontSize: '1.25rem',
-          fontWeight: 'bold',
-          border: 'none',
-          cursor: 'pointer',
+          padding: '1rem', borderRadius: 'var(--radius)',
+          background: isOnlinePvp ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))' : 'var(--primary-color)',
+          color: '#fff', fontSize: '1.25rem', fontWeight: 'bold',
+          border: 'none', cursor: 'pointer',
           boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
-          textTransform: 'uppercase',
-          letterSpacing: '2px',
+          textTransform: 'uppercase', letterSpacing: '2px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
         }}
       >
-        Play Game
+        {isOnlinePvp ? <><Wifi size={20} /> Find Match</> : 'Play Game'}
       </motion.button>
     </motion.div>
   );
