@@ -128,16 +128,17 @@ export function useOnlineGame(
 
     // Only the player making the final move updates both players' stats
     if (isFinished) {
-      const xId = gameState.playerXId;
-      const oId = gameState.playerOId;
+      const xId    = gameState.playerXId;
+      const oId    = gameState.playerOId;
+      const prefix = gt === 'infinity' ? 'infinity' : 'classic';
       if (isDraw) {
-        await updateDoc(doc(db, 'users', xId), { online_draws: increment(1) });
-        await updateDoc(doc(db, 'users', oId), { online_draws: increment(1) });
+        await updateDoc(doc(db, 'users', xId), { [`${prefix}_draws`]: increment(1) });
+        await updateDoc(doc(db, 'users', oId), { [`${prefix}_draws`]: increment(1) });
       } else {
         const winnerId = winnerSymbol === 'X' ? xId : oId;
         const loserId  = winnerSymbol === 'X' ? oId : xId;
-        await updateDoc(doc(db, 'users', winnerId), { online_wins:   increment(1) });
-        await updateDoc(doc(db, 'users', loserId),  { online_losses: increment(1) });
+        await updateDoc(doc(db, 'users', winnerId), { [`${prefix}_wins`]:   increment(1) });
+        await updateDoc(doc(db, 'users', loserId),  { [`${prefix}_losses`]: increment(1) });
       }
     }
   };
