@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   collection, query, where, getDocs, addDoc,
-  updateDoc, doc, onSnapshot, serverTimestamp, deleteDoc, limit,
+  doc, onSnapshot, serverTimestamp, deleteDoc, limit,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { AuthUser } from '../contexts/AuthContext';
@@ -22,81 +23,139 @@ export function useMatchmaking(currentUser: AuthUser | null) {
   });
 
   const matchmakingDocId = useRef<string | null>(null);
-  const unsubRef = useRef<(() => void) | null>(null);
+  const myDocUnsubRef  = useRef<(() => void) | null>(null);
+  const lobbyUnsubRef  = useRef<(() => void) | null>(null);
+  const isClaimingRef  = useRef(false);
 
+  // ──────────────────────────────────────────────────────────
+  // Try to atomically claim a waiting opponent
+  // ──────────────────────────────────────────────────────────
+  const tryClaimOpponent = async (myDocId: string) => {
+    if (!currentUser || isClaimingRef.current) return;
+
+    // Simple query — no != operator (avoids needing composite index)
+    const snap = await getDocs(
+      query(collection(db, 'matchmaking'), where('status', '==', 'waiting'), limit(10))
+    );
+
+    // Filter client-side: exclude ourselves
+    const opponent = snap.docs.find(
+      (d) => d.id !== myDocId && d.data().userId !== currentUser.id
+    );
+    if (!opponent) return;
+
+    isClaimingRef.current = true;
+
+    try {
+      const gameId = await runTransaction(db, async (tx) => {
+        const opponentRef = doc(db, 'matchmaking', opponent.id);
+        const opponentSnap = await tx.get(opponentRef);
+
+        // Bail if someone else already claimed this player
+        if (!opponentSnap.exists() || opponentSnap.data()?.status !== 'waiting') {
+          throw new Error('TAKEN');
+        }
+
+        const od = opponentSnap.data();
+
+        // Auto-ID for the new game
+        const gameRef = doc(collection(db, 'games'));
+
+        tx.set(gameRef, {
+          playerX:   od.username,
+          playerXId: od.userId,
+          playerO:   currentUser.username,
+          playerOId: currentUser.id,
+          board:       Array(9).fill(''),
+          currentTurn: 'X',
+          status:      'active',
+          winner:      null,
+          createdAt:   serverTimestamp(),
+          lastMoveAt:  serverTimestamp(),
+        });
+
+        // Notify Player X (opponent) with the gameId
+        tx.update(opponentRef, { status: 'matched', gameId: gameRef.id });
+
+        // Remove our own queue doc (we're Player O, no longer need it)
+        tx.delete(doc(db, 'matchmaking', myDocId));
+
+        return gameRef.id;
+      });
+
+      // Clean up listeners
+      myDocUnsubRef.current?.();  myDocUnsubRef.current = null;
+      lobbyUnsubRef.current?.();  lobbyUnsubRef.current = null;
+      matchmakingDocId.current = null;
+
+      setMatchState({ status: 'matched', gameId, mySymbol: 'O' });
+    } catch (err: any) {
+      isClaimingRef.current = false;
+      if (err?.message !== 'TAKEN') console.error('Matchmaking error:', err);
+      // If TAKEN → just keep waiting, someone will pick us up
+    }
+  };
+
+  // ──────────────────────────────────────────────────────────
+  // Start searching
+  // ──────────────────────────────────────────────────────────
   const findMatch = async () => {
     if (!currentUser) return;
+
+    isClaimingRef.current = false;
     setMatchState({ status: 'searching', gameId: null, mySymbol: null });
 
     try {
-      // Look for a waiting player (not ourselves)
-      const q = query(
-        collection(db, 'matchmaking'),
-        where('status', '==', 'waiting'),
-        where('userId', '!=', currentUser.id),
-        limit(1)
-      );
-      const snap = await getDocs(q);
+      // 1. Add ourselves to the queue
+      const myDocRef = await addDoc(collection(db, 'matchmaking'), {
+        username:  currentUser.username,
+        userId:    currentUser.id,
+        joinedAt:  serverTimestamp(),
+        status:    'waiting',
+        gameId:    null,
+      });
+      matchmakingDocId.current = myDocRef.id;
 
-      if (!snap.empty) {
-        // Found someone waiting — we become Player O
-        const opponentDoc = snap.docs[0];
-        const opponentData = opponentDoc.data();
+      // 2. Listen to OUR queue doc → when an opponent sets gameId we become Player X
+      const myDocUnsub = onSnapshot(doc(db, 'matchmaking', myDocRef.id), (snap) => {
+        const data = snap.data();
+        if (data?.status === 'matched' && data?.gameId) {
+          myDocUnsubRef.current?.();  myDocUnsubRef.current = null;
+          lobbyUnsubRef.current?.();  lobbyUnsubRef.current = null;
+          matchmakingDocId.current = null;
+          setMatchState({ status: 'matched', gameId: data.gameId, mySymbol: 'X' });
+        }
+      });
+      myDocUnsubRef.current = myDocUnsub;
 
-        const gameRef = await addDoc(collection(db, 'games'), {
-          playerX: opponentData.username,
-          playerXId: opponentData.userId,
-          playerO: currentUser.username,
-          playerOId: currentUser.id,
-          board: Array(9).fill(''),
-          currentTurn: 'X',
-          status: 'active',
-          winner: null,
-          createdAt: serverTimestamp(),
-          lastMoveAt: serverTimestamp(),
-        });
-
-        // Notify waiting player (Player X)
-        await updateDoc(doc(db, 'matchmaking', opponentDoc.id), {
-          status: 'matched',
-          gameId: gameRef.id,
-        });
-
-        setMatchState({ status: 'matched', gameId: gameRef.id, mySymbol: 'O' });
-      } else {
-        // No one waiting — add ourselves to the queue as Player X
-        const myDocRef = await addDoc(collection(db, 'matchmaking'), {
-          username: currentUser.username,
-          userId: currentUser.id,
-          joinedAt: serverTimestamp(),
-          status: 'waiting',
-          gameId: null,
-        });
-        matchmakingDocId.current = myDocRef.id;
-
-        // Listen for when someone matches with us
-        const unsub = onSnapshot(doc(db, 'matchmaking', myDocRef.id), (snap) => {
-          const data = snap.data();
-          if (data?.status === 'matched' && data?.gameId) {
-            setMatchState({ status: 'matched', gameId: data.gameId, mySymbol: 'X' });
-            unsub();
-            unsubRef.current = null;
-            // Clean up matchmaking doc
-            deleteDoc(doc(db, 'matchmaking', myDocRef.id)).catch(() => {});
-            matchmakingDocId.current = null;
+      // 3. Listen to the whole lobby — any new waiting player → try to claim
+      const lobbyUnsub = onSnapshot(
+        query(collection(db, 'matchmaking'), where('status', '==', 'waiting')),
+        async () => {
+          if (matchmakingDocId.current) {
+            await tryClaimOpponent(matchmakingDocId.current);
           }
-        });
+        }
+      );
+      lobbyUnsubRef.current = lobbyUnsub;
 
-        unsubRef.current = unsub;
-      }
+      // 4. Immediately try in case someone is already waiting
+      await tryClaimOpponent(myDocRef.id);
+
     } catch (err) {
-      console.error('Matchmaking error:', err);
+      console.error('findMatch error:', err);
       setMatchState({ status: 'idle', gameId: null, mySymbol: null });
     }
   };
 
+  // ──────────────────────────────────────────────────────────
+  // Cancel search
+  // ──────────────────────────────────────────────────────────
   const cancelSearch = async () => {
-    if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+    myDocUnsubRef.current?.();  myDocUnsubRef.current = null;
+    lobbyUnsubRef.current?.();  lobbyUnsubRef.current = null;
+    isClaimingRef.current = false;
+
     if (matchmakingDocId.current) {
       try { await deleteDoc(doc(db, 'matchmaking', matchmakingDocId.current)); } catch {}
       matchmakingDocId.current = null;
@@ -105,12 +164,15 @@ export function useMatchmaking(currentUser: AuthUser | null) {
   };
 
   const resetMatch = () => {
+    isClaimingRef.current = false;
     setMatchState({ status: 'idle', gameId: null, mySymbol: null });
   };
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (unsubRef.current) unsubRef.current();
+      myDocUnsubRef.current?.();
+      lobbyUnsubRef.current?.();
     };
   }, []);
 
