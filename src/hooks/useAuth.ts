@@ -145,12 +145,8 @@ export async function requestPasswordReset(
       email = userData.email;
     }
 
-    // 2. Send official Firebase password reset email with continue redirect to current site location
-    const actionCodeSettings = {
-      url: window.location.origin,
-      handleCodeInApp: true
-    };
-    await sendPasswordResetEmail(auth, email, actionCodeSettings);
+    // 2. Send official Firebase password reset email using default Firebase widget
+    await sendPasswordResetEmail(auth, email);
     return { success: true };
   } catch (error: any) {
     console.error('Password Reset Error:', error);

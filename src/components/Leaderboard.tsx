@@ -58,16 +58,18 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUser, onBack })
     const fetchPlayers = async () => {
       try {
         const snap = await getDocs(query(collection(db, 'users')));
-        const data: PlayerStats[] = snap.docs.map(d => ({
-          id:              d.id,
-          username:        d.data().username      || '',
-          classic_wins:    d.data().classic_wins   || 0,
-          classic_losses:  d.data().classic_losses || 0,
-          classic_draws:   d.data().classic_draws  || 0,
-          infinity_wins:   d.data().infinity_wins  || 0,
-          infinity_losses: d.data().infinity_losses|| 0,
-          infinity_draws:  d.data().infinity_draws || 0,
-        }));
+        const data: PlayerStats[] = snap.docs
+          .filter(d => d.data().classic_wins !== undefined) // Hide chess-only accounts
+          .map(d => ({
+            id:              d.id,
+            username:        d.data().username      || '',
+            classic_wins:    d.data().classic_wins   || 0,
+            classic_losses:  d.data().classic_losses || 0,
+            classic_draws:   d.data().classic_draws  || 0,
+            infinity_wins:   d.data().infinity_wins  || 0,
+            infinity_losses: d.data().infinity_losses|| 0,
+            infinity_draws:  d.data().infinity_draws || 0,
+          }));
         setPlayers(data);
       } catch (err) {
         console.error('Failed to load leaderboard:', err);
